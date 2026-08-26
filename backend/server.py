@@ -52,8 +52,6 @@ async def startup_event():
     asyncio.create_task(background_assessment_task())
     asyncio.create_task(background_stock360s_confirm_task())
     asyncio.create_task(background_sl_tp_task())
-    asyncio.create_task(background_upstox_verify_task())
-
 
 async def background_market_task():
     """1-second price updates + candle saves."""
@@ -302,24 +300,6 @@ async def api_whatsapp(request: Request):
         data.get('whatsapp_number')
     )
     return JSONResponse(result)
-
-async def background_upstox_verify_task():
-    while True:
-        try:
-            async with common.db_pool.acquire() as conn:
-                async with conn.cursor() as cur:
-                    await cur.execute(
-                        """UPDATE users_state 
-                           SET upstox_verified=TRUE 
-                           WHERE upstox_verify_request_time IS NOT NULL 
-                             AND upstox_verified=FALSE 
-                             AND upstox_verify_request_time < (NOW() - INTERVAL 1 HOUR)"""
-                    )
-                    if cur.rowcount > 0:
-                        logger.info(f"[Upstox] Auto-verified {cur.rowcount} pending accounts after 1 hour.")
-        except Exception as e:
-            logger.error(f"[Upstox Verify Task] {e}")
-        await asyncio.sleep(60)
 
 @app.get("/api/auth/me")
 async def api_me(request: Request):
