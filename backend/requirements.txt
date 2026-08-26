@@ -3,3 +3,4 @@ uvicorn
 aiomysql
 websockets
 aiofiles
+python-dotenv
