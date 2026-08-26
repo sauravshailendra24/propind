@@ -291,31 +291,49 @@ function updateAssessmentBanner(onb) {
             <div style="background: rgba(14,203,129,0.08); border: 1px dashed rgba(14,203,129,0.3); padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 11px; color: #0ecb81;">
                 ⏳ Stock360s purchase confirmed. Waiting for step advancement...
             </div>`;
-    } else if (step < 3) {
-        html += `
-            <div style="margin-top: 8px;">
-                <button class="btn-close" onclick="buyStock360s(${step})" style="width: 100%; padding: 6px; font-size: 11px;">
-                    Skip with Stock360s
-                </button>
-            </div>`;
-    }
+            } else if (step === 1) {
+                html += `
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                        <button class="btn-close"
+                                onclick="buyStock360s('1mo')"
+                                style="width: 100%; padding: 7px; font-size: 11px;">
+                            Buy 1 Month Professional Package for Stock360s → Reach Level 2
+                        </button>
+
+                        <button class="btn-close"
+                                onclick="buyStock360s('1yr')"
+                                style="width: 100%; padding: 7px; font-size: 11px;">
+                            Buy 1 Year Professional Package for Stock360s → Reach Final Level
+                        </button>
+                    </div>`;
+            } else if (step === 2) {
+                html += `
+                    <div style="margin-top: 8px;">
+                        <button class="btn-close"
+                                onclick="buyStock360s('1yr')"
+                                style="width: 100%; padding: 7px; font-size: 11px;">
+                            Buy 1 Year Professional Package for Stock360s → Reach Final Level
+                        </button>
+                    </div>`;
+            }
 
     html += `</div>`;
     banner.innerHTML = html;
 }
 
-window.buyStock360s = async function(currentStep) {
-    const plan = currentStep === 1 ? '1mo' : '1yr';
-    const url = currentStep === 1
-        ? 'https://stock360s.com/#landing-pricing'
-        : 'https://stock360s.com/#landing-pricing';
+window.buyStock360s = async function(plan) {
+    const url = 'https://stock360s.com/#landing-pricing';
     window.open(url, '_blank');
     await fetch('/api/stock360s/purchase', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ plan })
     });
-    alert('Purchase recorded! Confirmation within 1 hour. You will be advanced automatically.');
+    alert(
+        plan === '1mo'
+            ? '1 Month Professional Package selected. You will be advanced to Level 2 after confirmation.'
+            : '1 Year Professional Package selected. You will be advanced directly to the final level after confirmation.'
+    );
 }
 
 function updateDashboard(state) {
