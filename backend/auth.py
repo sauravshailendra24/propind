@@ -76,11 +76,23 @@ async def verify_upstox_account(user_id: str):
     async with common.db_pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "UPDATE users_state SET upstox_verify_request_time=NOW() WHERE user_id=%s",
+                """UPDATE users_state
+                   SET upstox_verified=TRUE,
+                       upstox_verify_request_time=NOW()
+                   WHERE user_id=%s""",
                 (user_id,)
             )
-            logger.info(f"[Upstox] Verification requested by {user_id}. Pending 1 hour.")
-            return {"status": "pending", "message": "Verification pending. Please wait up to 1 hour for confirmation."}
+            if cur.rowcount == 0:
+                logger.error(f"[Upstox] User state not found for {user_id}")
+                return {
+                    "status": "error",
+                    "message": "User state not found."
+                }
+            logger.info(f"[Upstox] Verified immediately for {user_id}")
+            return {
+                "status": "verified",
+                "message": "Upstox verification completed successfully."
+            }
 
 async def get_current_user(request: Request):
     user_id = request.cookies.get("propind_user")
