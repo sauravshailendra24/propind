@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+aiomysql
+websockets
+aiofiles
