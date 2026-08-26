@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PropInd — Onboarding</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: #0b0e11; color: #eaecef; min-height: 100vh; overflow-x: hidden; }
+
+        /* ── Animated background orbs ── */
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.12; z-index: 0; pointer-events: none; }
+        .orb-1 { width: 450px; height: 450px; background: #f0b90b; top: -120px; left: -120px; animation: float1 22s infinite ease-in-out; }
+        .orb-2 { width: 350px; height: 350px; background: #0ecb81; bottom: -80px; right: -80px; animation: float2 18s infinite ease-in-out; }
+        .orb-3 { width: 280px; height: 280px; background: #f6465d; top: 40%; left: 55%; animation: float3 25s infinite ease-in-out; }
+        @keyframes float1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(120px,40px) scale(1.15)} 66%{transform:translate(30px,120px) scale(0.85)} }
+        @keyframes float2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-80px,-60px) scale(1.1)} 66%{transform:translate(40px,-100px) scale(0.9)} }
+        @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-150px,80px) scale(1.2)} }
+
+        /* ── Progress bar ── */
+        #progress-bar { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: #181a20; z-index: 100; }
+        #progress-fill { height: 100%; background: linear-gradient(90deg, #f0b90b, #0ecb81); width: 0%; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 12px rgba(240,185,11,0.6); }
+
+        /* ── Logo ── */
+        .logo { position: fixed; top: 22px; left: 30px; font-weight: 800; font-size: 22px; color: #f0b90b; z-index: 50; letter-spacing: -0.5px; }
+        .logo span { color: #eaecef; font-weight: 300; }
+
+        /* ── Step counter ── */
+        .step-counter { position: fixed; top: 22px; right: 30px; font-size: 13px; color: #5e6673; z-index: 50; font-weight: 600; }
+        .step-counter span { color: #f0b90b; }
+
+        /* ── Main container ── */
+        #onboarding { position: relative; z-index: 10; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 80px 20px 40px; }
+
+        .step-card { max-width: 680px; width: 100%; }
+        .step-card.enter { animation: cardEnter 0.6s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes cardEnter { from { opacity: 0; transform: translateY(40px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        /* ── Glass card ── */
+        .glass { background: rgba(24,26,32,0.72); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(44,47,54,0.6); border-radius: 24px; padding: 44px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+
+        /* ── Typography ── */
+        .step-title { font-size: 2.2rem; font-weight: 800; margin-bottom: 10px; background: linear-gradient(135deg, #f0b90b 0%, #fff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1.2; }
+        .step-subtitle { font-size: 1.05rem; color: #848e9c; margin-bottom: 28px; font-weight: 500; }
+        .step-body { font-size: 0.95rem; color: #b0b8c6; line-height: 1.8; margin-bottom: 24px; }
+        .step-body strong { color: #eaecef; }
+
+        /* ── Staggered children ── */
+        .stagger > * { opacity: 0; animation: fadeUp 0.5s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .stagger > *:nth-child(1) { animation-delay: 0.1s; }
+        .stagger > *:nth-child(2) { animation-delay: 0.18s; }
+        .stagger > *:nth-child(3) { animation-delay: 0.26s; }
+        .stagger > *:nth-child(4) { animation-delay: 0.34s; }
+        .stagger > *:nth-child(5) { animation-delay: 0.42s; }
+        .stagger > *:nth-child(6) { animation-delay: 0.50s; }
+        .stagger > *:nth-child(7) { animation-delay: 0.58s; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Experience cards ── */
+        .exp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+        .exp-card { background: #181a20; border: 2px solid #2c2f36; border-radius: 16px; padding: 26px 14px; text-align: center; cursor: pointer; transition: all 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .exp-card:hover { border-color: #f0b90b; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(240,185,11,0.12); background: #1c1f26; }
+        .exp-card.selected { border-color: #f0b90b; background: rgba(240,185,11,0.08); box-shadow: 0 0 25px rgba(240,185,11,0.3); transform: translateY(-3px); }
+        .exp-icon { font-size: 2.2rem; margin-bottom: 10px; transition: transform 0.3s; }
+        .exp-card:hover .exp-icon { transform: scale(1.15); }
+        .exp-label { font-weight: 700; font-size: 1rem; color: #eaecef; margin-bottom: 4px; }
+        .exp-desc { font-size: 0.72rem; color: #848e9c; }
+
+        /* ── Info cards ── */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+        .info-card { background: rgba(11,14,17,0.6); border: 1px solid rgba(44,47,54,0.7); border-radius: 14px; padding: 16px 18px; transition: border-color 0.3s; }
+        .info-card:hover { border-color: rgba(240,185,11,0.3); }
+        .info-label { font-size: 0.68rem; color: #848e9c; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px; font-weight: 600; }
+        .info-value { font-size: 1.15rem; font-weight: 700; color: #f0b90b; }
+
+        /* ── Alternative box ── */
+        .alt-box { background: rgba(14,203,129,0.04); border: 1px dashed rgba(14,203,129,0.35); border-radius: 14px; padding: 18px 20px; margin-bottom: 22px; }
+        .alt-label { font-size: 0.72rem; color: #0ecb81; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .alt-text { font-size: 0.88rem; color: #b0b8c6; line-height: 1.7; }
+
+        /* ── Buttons ── */
+        .btn-row { display: flex; gap: 12px; }
+        .btn { flex: 1; padding: 16px 24px; border: none; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); font-family: inherit; }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, #f0b90b, #ffd700); color: #000; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(240,185,11,0.35); }
+        .btn-secondary { background: rgba(14,203,129,0.12); color: #0ecb81; border: 1px solid rgba(14,203,129,0.35); }
+        .btn-secondary:hover { background: rgba(14,203,129,0.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14,203,129,0.15); }
+
+        /* ── Congratulations ── */
+        .congrats-icon { font-size: 5.5rem; text-align: center; margin-bottom: 16px; animation: pop 0.8s cubic-bezier(0.68,-0.55,0.265,1.55); }
+        @keyframes pop { 0%{opacity:0;transform:scale(0.2) rotate(-20deg)} 60%{transform:scale(1.2) rotate(5deg)} 100%{opacity:1;transform:scale(1) rotate(0)} }
+
+        /* ── Check badge ── */
+        .check-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(14,203,129,0.12); border: 1px solid rgba(14,203,129,0.35); border-radius: 8px; padding: 4px 12px; font-size: 0.78rem; color: #0ecb81; font-weight: 700; margin-bottom: 16px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .glass { padding: 28px 22px; border-radius: 18px; }
+            .step-title { font-size: 1.55rem; }
+            .info-grid { grid-template-columns: 1fr; }
+            .btn-row { flex-direction: column; }
+            .logo { font-size: 18px; left: 18px; }
+            .step-counter { font-size: 11px; right: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div class="logo">Prop<span>Ind</span></div>
+    <div class="step-counter">Step <span id="step-num">1</span> of 6</div>
+
+    <div id="onboarding"></div>
+
+    <script>
+                let selectedExperience = null;
+
+        async function init() {
+            const res = await fetch('/api/onboarding/state');
+            if (!res.ok) { window.location.href = '/'; return; }
+            const data = await res.json();
+
+            if (data.upstox_verified) {
+                // Already verified → go to dashboard
+                window.location.href = '/dashboard';
+                return;
+            }
+
+            if (data.experience_level) {
+                // Experience set but Upstox not verified → show Upstox step
+                renderUpstoxStep();
+            } else {
+                renderExperienceStep();
+            }
+        }
+
+        function renderExperienceStep() {
+            document.getElementById('step-num').innerText = '1';
+            document.getElementById('progress-fill').style.width = '50%';
+            document.getElementById('onboarding').innerHTML = `
+                <div class="step-card enter">
+                    <div class="glass stagger">
+                        <h1 class="step-title">Welcome to PropInd</h1>
+                        <p class="step-subtitle">Get funded up to ₹1 Crore. First — how would you describe your trading experience?</p>
+                        <div class="exp-grid">
+                            <div class="exp-card" onclick="selectExperience('beginner', this)">
+                                <div class="exp-icon">🌱</div><div class="exp-label">Beginner</div>
+                            </div>
+                            <div class="exp-card" onclick="selectExperience('amateur', this)">
+                                <div class="exp-icon">📈</div><div class="exp-label">Amateur</div>
+                            </div>
+                            <div class="exp-card" onclick="selectExperience('intermediate', this)">
+                                <div class="exp-icon">🎯</div><div class="exp-label">Intermediate</div>
+                            </div>
+                            <div class="exp-card" onclick="selectExperience('professional', this)">
+                                <div class="exp-icon">⚡</div><div class="exp-label">Professional</div>
+                            </div>
+                            <div class="exp-card" onclick="selectExperience('expert', this)">
+                                <div class="exp-icon">👑</div><div class="exp-label">Expert</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        async function selectExperience(level, el) {
+            document.querySelectorAll('.exp-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            await sleep(400);
+            await fetch('/api/onboarding/experience', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ level })
+            });
+            renderUpstoxStep();
+        }
+
+        function renderUpstoxStep() {
+            document.getElementById('step-num').innerText = '2';
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('onboarding').innerHTML = `
+                <div class="step-card enter">
+                    <div class="glass stagger">
+                        <h1 class="step-title">Open Your Upstox Account</h1>
+                        <p class="step-subtitle">Mandatory step — we use Upstox for real execution</p>
+                        <p class="step-body">
+                            We run <strong>quantitative and HFT strategies</strong> globally using
+                            <strong>Stock360s</strong> as our core platform. Our brokerage partner is
+                            <strong>Upstox</strong> for low-latency execution.
+                            <br><br>
+                            Opening an Upstox account is <strong>mandatory</strong> before you can start
+                            the assessment. This is the same account you'll use when funded.
+                        </p>
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <div class="info-label">Brokerage Partner</div>
+                                <div class="info-value">Upstox</div>
+                            </div>
+                            <div class="info-card">
+                                <div class="info-label">Account Type</div>
+                                <div class="info-value">Free</div>
+                            </div>
+                        </div>
+                        <div class="btn-row">
+                            <a href="https://upstox.com/open-account/?f=4XCT4L" target="_blank" class="btn btn-primary" style="text-align:center; text-decoration:none;">
+                                Open Upstox Account →
+                            </a>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <button class="btn btn-secondary" onclick="verifyUpstox()" style="width: 100%;">
+                                ✓ I've opened my account
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        async function verifyUpstox() {
+            const res = await fetch('/api/auth/upstox-verify', { method: 'POST' });
+            if (res.ok) {
+                window.location.href = '/dashboard';
+            } else {
+                alert('Verification failed. Please try again.');
+            }
+        }
+
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        init();
+    </script>
+</body>
+</html>
