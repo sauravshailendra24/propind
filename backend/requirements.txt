@@ -4,3 +4,4 @@ aiomysql
 websockets
 aiofiles
 python-dotenv
+cryptography
