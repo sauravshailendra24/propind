@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-aiomysql
-websockets
-aiofiles
-python-dotenv
-cryptography
