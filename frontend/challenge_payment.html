@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start PropInd Challenge</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+body{margin:0;background:#06080a;color:#eaecef;font-family:Inter,Arial,sans-serif;display:grid;place-items:center;min-height:100vh}
+.card{width:min(440px,calc(100% - 32px));background:#11151a;border:1px solid #2c2f36;border-radius:18px;padding:32px;box-shadow:0 20px 80px rgba(0,0,0,.45);text-align:center}
+.badge{display:inline-block;color:#f0b90b;border:1px solid rgba(240,185,11,.3);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+h1{font-size:32px;margin:18px 0 8px}.price{font-size:48px;font-weight:900;margin:18px 0 4px}.muted{color:#848e9c;line-height:1.6}
+button{width:100%;margin-top:24px;padding:14px;border:0;border-radius:10px;background:linear-gradient(135deg,#f0b90b,#ffd700);font-size:16px;font-weight:800;cursor:pointer}
+#status{margin-top:16px;color:#848e9c;font-size:13px;min-height:20px}.small{font-size:12px;color:#5e6673;margin-top:18px}
+</style>
+</head>
+<body>
+<main class="card">
+<div class="badge">Upstox Verified</div>
+<h1>Start Your Challenge</h1>
+<div class="price">₹11</div>
+<div class="muted">Pay once to unlock <strong>96 hours</strong> of PropInd assessment access.</div>
+<button id="pay" onclick="startPayment()">Pay ₹11 &amp; Start Challenge</button>
+<div id="status"></div>
+<div class="small">Every successful payment starts a fresh ₹100,000 virtual challenge.
+    Trade as much as you want. Only the challenge loss limits restrict you.
+</div>
+</main>
+<script>
+async function startPayment(){
+ const btn=document.getElementById('pay'), status=document.getElementById('status');
+ btn.disabled=true; status.textContent='Creating secure payment order...';
+ try{
+  const r=await fetch('/api/challenge/create-order',{method:'POST'});
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.error||'Unable to create order');
+  if(d.status==='active'){location.href='/dashboard';return;}
+  const options={
+   key:d.key_id,amount:d.amount,currency:d.currency,name:d.name,
+   description:d.description,order_id:d.order_id,
+   handler:async function(){
+    status.textContent='Payment received. Confirming your challenge...';
+    await waitForActivation(d.order_id);
+   },
+   modal:{ondismiss:function(){btn.disabled=false;status.textContent='Payment window closed.';}},
+   theme:{color:'#f0b90b'}
+  };
+  const rp=new Razorpay(options);
+  rp.on('payment.failed',function(e){btn.disabled=false;status.textContent=e.error?.description||'Payment failed.';});
+  rp.open();
+ }catch(e){btn.disabled=false;status.textContent=e.message||'Payment failed.';}
+}
+async function waitForActivation(orderId){
+ for(let i=0;i<20;i++){
+  await new Promise(r=>setTimeout(r,1000));
+  const r=await fetch('/api/challenge/status?order_id='+encodeURIComponent(orderId));
+  const d=await r.json();
+  if(d.active){location.href='/dashboard';return;}
+ }
+ document.getElementById('status').textContent='Payment is being verified. Refresh in a few seconds if needed.';
+ document.getElementById('pay').disabled=false;
+}
+</script>
+</body>
+</html>
