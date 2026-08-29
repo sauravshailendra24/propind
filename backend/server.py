@@ -16,7 +16,11 @@ from fastapi.responses import HTMLResponse, JSONResponse,RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import common
 from common import init_db, logger
-from razorpay_service import create_challenge_order, process_challenge_webhook, get_challenge_status, verify_webhook_signature
+from razorpay_service import (
+    create_challenge_payment_link,
+    process_payment_link_callback,
+    get_challenge_status
+)
 from data_generator import market_engine
 from crypto import (execute_crypto_order, check_crypto_liquidations,check_crypto_funding, check_pending_orders)
 from forex import (execute_forex_order, check_forex_liquidations, check_forex_swap)
@@ -312,14 +316,98 @@ async def challenge_payment_page(request: Request):
         return HTMLResponse(content=f.read())
 
 
-@app.post("/api/challenge/create-order")
-async def api_challenge_create_order(request: Request):
-    user = await get_current_user(request)
-    if not user:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    result = await create_challenge_order(user['user_id'])
-    return JSONResponse(result, status_code=400 if 'error' in result else 200)
+@app.post("/api/challenge/create-payment-link")
+async def api_challenge_create_payment_link(request: Request):
 
+    user = await get_current_user(request)
+
+    if not user:
+        return JSONResponse(
+            {"error": "Unauthorized"},
+            status_code=401
+        )
+
+    result = await create_challenge_payment_link(
+        user['user_id']
+    )
+
+    return JSONResponse(
+        result,
+        status_code=400 if 'error' in result else 200
+    )
+
+@app.get("/api/challenge/payment-callback")
+async def challenge_payment_callback(
+    razorpay_payment_id: str = None,
+    razorpay_payment_link_id: str = None,
+    razorpay_payment_link_reference_id: str = None,
+    razorpay_payment_link_status: str = None,
+    razorpay_signature: str = None
+):
+
+    if not razorpay_payment_id:
+        return HTMLResponse(
+            "<h2>Payment information missing.</h2>",
+            status_code=400
+        )
+
+    if not razorpay_payment_link_id:
+        return HTMLResponse(
+            "<h2>Payment link information missing.</h2>",
+            status_code=400
+        )
+
+    if not razorpay_payment_link_reference_id:
+        return HTMLResponse(
+            "<h2>Payment reference missing.</h2>",
+            status_code=400
+        )
+
+    if not razorpay_signature:
+        return HTMLResponse(
+            "<h2>Payment signature missing.</h2>",
+            status_code=400
+        )
+
+    success, message = await process_payment_link_callback(
+        payment_link_id=razorpay_payment_link_id,
+        reference_id=razorpay_payment_link_reference_id,
+        payment_link_status=razorpay_payment_link_status or "",
+        payment_id=razorpay_payment_id,
+        signature=razorpay_signature
+    )
+
+    if success:
+        return RedirectResponse(
+            url="/dashboard",
+            status_code=303
+        )
+
+    return HTMLResponse(
+        f"""
+        <html>
+        <body style="
+            background:#06080a;
+            color:#eaecef;
+            font-family:Arial;
+            text-align:center;
+            padding:80px 20px;
+        ">
+            <h2>Payment Verification</h2>
+            <p>{message}</p>
+            <p>
+                If your money was deducted, please wait a moment
+                and try again.
+            </p>
+            <a href="/challenge-payment"
+               style="color:#f0b90b;">
+               Return to Challenge Payment
+            </a>
+        </body>
+        </html>
+        """,
+        status_code=400
+    )
 
 @app.get("/api/challenge/status")
 async def api_challenge_status(request: Request, order_id: str = None):
@@ -330,20 +418,6 @@ async def api_challenge_status(request: Request, order_id: str = None):
     if order_id and result.get('challenge_order_id') and result['challenge_order_id'] != order_id:
         result['active'] = False
     return JSONResponse(result)
-
-
-@app.post("/api/razorpay/webhook")
-async def razorpay_webhook(request: Request):
-    raw_body = await request.body()
-    signature = request.headers.get("X-Razorpay-Signature", "")
-    if not common.RAZORPAY_WEBHOOK_SECRET:
-        logger.error("[Razorpay] WEBHOOK_SECRET is not configured")
-        return JSONResponse({"error": "Webhook not configured"}, status_code=500)
-    if not verify_webhook_signature(raw_body, signature):
-        return JSONResponse({"error": "Invalid signature"}, status_code=400)
-    asyncio.create_task(process_challenge_webhook(raw_body, signature))
-    return JSONResponse({"status": "ok"}, status_code=200)
-
 
 @app.get("/upstox-verify")
 async def upstox_verify_page(request: Request):

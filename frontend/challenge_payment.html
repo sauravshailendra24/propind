@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Start PropInd Challenge</title>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
 body{margin:0;background:#06080a;color:#eaecef;font-family:Inter,Arial,sans-serif;display:grid;place-items:center;min-height:100vh}
 .card{width:min(440px,calc(100% - 32px));background:#11151a;border:1px solid #2c2f36;border-radius:18px;padding:32px;box-shadow:0 20px 80px rgba(0,0,0,.45);text-align:center}
@@ -27,39 +26,57 @@ button{width:100%;margin-top:24px;padding:14px;border:0;border-radius:10px;backg
 </div>
 </main>
 <script>
-async function startPayment(){
- const btn=document.getElementById('pay'), status=document.getElementById('status');
- btn.disabled=true; status.textContent='Creating secure payment order...';
- try{
-  const r=await fetch('/api/challenge/create-order',{method:'POST'});
-  const d=await r.json();
-  if(!r.ok) throw new Error(d.error||'Unable to create order');
-  if(d.status==='active'){location.href='/dashboard';return;}
-  const options={
-   key:d.key_id,amount:d.amount,currency:d.currency,name:d.name,
-   description:d.description,order_id:d.order_id,
-   handler:async function(){
-    status.textContent='Payment received. Confirming your challenge...';
-    await waitForActivation(d.order_id);
-   },
-   modal:{ondismiss:function(){btn.disabled=false;status.textContent='Payment window closed.';}},
-   theme:{color:'#f0b90b'}
-  };
-  const rp=new Razorpay(options);
-  rp.on('payment.failed',function(e){btn.disabled=false;status.textContent=e.error?.description||'Payment failed.';});
-  rp.open();
- }catch(e){btn.disabled=false;status.textContent=e.message||'Payment failed.';}
+
+async function startPayment() {
+
+    const btn = document.getElementById('pay');
+    const status = document.getElementById('status');
+
+    btn.disabled = true;
+    status.textContent = 'Creating secure payment link...';
+
+    try {
+
+        const response = await fetch(
+            '/api/challenge/create-payment-link',
+            {
+                method: 'POST'
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.error || 'Unable to create payment link'
+            );
+        }
+
+        if (data.status === 'active') {
+            window.location.href = '/dashboard';
+            return;
+        }
+
+        if (!data.short_url) {
+            throw new Error(
+                'Razorpay did not return a payment link.'
+            );
+        }
+
+        status.textContent =
+            'Redirecting to secure Razorpay payment...';
+
+        window.location.href = data.short_url;
+
+    } catch (error) {
+
+        btn.disabled = false;
+
+        status.textContent =
+            error.message || 'Payment could not be started.';
+    }
 }
-async function waitForActivation(orderId){
- for(let i=0;i<20;i++){
-  await new Promise(r=>setTimeout(r,1000));
-  const r=await fetch('/api/challenge/status?order_id='+encodeURIComponent(orderId));
-  const d=await r.json();
-  if(d.active){location.href='/dashboard';return;}
- }
- document.getElementById('status').textContent='Payment is being verified. Refresh in a few seconds if needed.';
- document.getElementById('pay').disabled=false;
-}
+
 </script>
 </body>
 </html>

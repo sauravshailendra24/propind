@@ -51,9 +51,32 @@ UPSTOX_REFERRAL_URL = 'https://upstox.com/open-account/?f=4XCT4L'  # replace wit
 # PropInd daily challenge payment
 CHALLENGE_PRICE_INR = 11
 CHALLENGE_DURATION_HOURS = 96
-RAZORPAY_KEY_ID = os.getenv('RAZOPRPAY_KEY') or os.getenv('RAZORPAY_KEY')
-RAZORPAY_KEY_SECRET = os.getenv('RAZOPRPAY_SECRET') or os.getenv('RAZORPAY_SECRET')
-RAZORPAY_WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
+# ── Razorpay Keys (same account works for Stock360s + PropInd) ──
+RAZORPAY_KEY_ID = (
+    os.getenv('RAZOPRPAY_KEY') 
+    or os.getenv('RAZORPAY_KEY')
+    or os.getenv('RAZOPRPAY_KEY_TEST')  # fallback to test key
+)
+RAZORPAY_KEY_SECRET = (
+    os.getenv('RAZORPAY_SECRET') 
+    or os.getenv('RAZOPRPAY_SECRET')
+    or os.getenv('RAZOPRPAY_SECRET_TEST')  # fallback to test secret
+)
+# ── NOT NEEDED for PropInd (callback-based, not webhook) ──
+# RAZORPAY_WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
+
+# Log which keys are loaded (mask secrets for security)
+if RAZORPAY_KEY_ID:
+    logger.info(f"[Razorpay] Key ID loaded: {RAZORPAY_KEY_ID[:8]}...{RAZORPAY_KEY_ID[-4:]}")
+else:
+    logger.error("[Razorpay] ❌ NO KEY ID FOUND - Payment links will FAIL")
+    logger.error("[Razorpay] Set RAZOPRPAY_KEY or RAZOPRPAY_KEY_TEST in .env")
+
+if RAZORPAY_KEY_SECRET:
+    logger.info(f"[Razorpay] Key Secret loaded: {RAZORPAY_KEY_SECRET[:4]}...{RAZORPAY_KEY_SECRET[-4:]}")
+else:
+    logger.error("[Razorpay] ❌ NO KEY SECRET FOUND - Payment links will FAIL")
+    logger.error("[Razorpay] Set RAZORPAY_SECRET or RAZOPRPAY_SECRET_TEST in .env")
 RAZORPAY_TEST_MODE = os.getenv('RAZORPAY_TEST_MODE', 'false').lower() == 'true'
 RAZORPAY_API_BASE = 'https://api.razorpay.com/v1'
 
@@ -208,6 +231,23 @@ async def init_db():
                 )
             """)
             async def add_column_if_not_exists(table, column, definition):
+                await add_column_if_not_exists(
+                    "challenge_payments",
+                    "razorpay_payment_link_id",
+                    "VARCHAR(64) NULL UNIQUE"
+                )
+                await add_column_if_not_exists(
+                    "challenge_payments",
+                    "razorpay_reference_id",
+                    "VARCHAR(64) NULL UNIQUE"
+                )
+                try:
+                    await cur.execute(
+                        "ALTER TABLE challenge_payments "
+                        "MODIFY COLUMN razorpay_order_id VARCHAR(64) NULL"
+                    )
+                except Exception as e:
+                    logger.error(f"Migration error on challenge_payments.razorpay_order_id: {e}")
                 try:
                     await cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
                 except Exception as e:
