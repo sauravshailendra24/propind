@@ -230,78 +230,75 @@ async def init_db():
                     INDEX idx_user_ts (user_id, timestamp)
                 )
             """)
-            async def add_column_if_not_exists(table, column, definition):
-                await add_column_if_not_exists(
-                    "challenge_payments",
-                    "razorpay_payment_link_id",
-                    "VARCHAR(64) NULL UNIQUE"
-                )
-                await add_column_if_not_exists(
-                    "challenge_payments",
-                    "razorpay_reference_id",
-                    "VARCHAR(64) NULL UNIQUE"
-                )
-                try:
-                    await cur.execute(
-                        "ALTER TABLE challenge_payments "
-                        "MODIFY COLUMN razorpay_order_id VARCHAR(64) NULL"
-                    )
-                except Exception as e:
-                    logger.error(f"Migration error on challenge_payments.razorpay_order_id: {e}")
+            async def add_column_if_not_exists(cur, table, column, definition):
                 try:
                     await cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
                 except Exception as e:
                     if "Duplicate column" not in str(e):
                         logger.error(f"Migration error on {table}.{column}: {e}")
 
-            await add_column_if_not_exists("trades_orders", "filled_size", "DECIMAL(18,8) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "trigger_price", "DECIMAL(15,5) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "take_profit_price", "DECIMAL(15,5) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "stop_loss_price", "DECIMAL(15,5) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "trailing_distance", "DECIMAL(15,5) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "trailing_trigger", "DECIMAL(15,5) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "status", "ENUM('PENDING','OPEN','PARTIAL','FILLED','CANCELLED','PARTIAL_LIQ','LIQUIDATED','STOP_OUT','MARGIN_CALL') DEFAULT 'PENDING'")
-            await add_column_if_not_exists("trades_orders", "initial_margin", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "maintenance_margin", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "maker_fee", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "taker_fee", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "funding_paid", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "swap_paid", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("trades_orders", "opened_at", "TIMESTAMP NULL")
-            await add_column_if_not_exists("trades_orders", "closed_at", "TIMESTAMP NULL")
-            await add_column_if_not_exists("trades_orders", "close_reason", "VARCHAR(20) NULL")
-            await add_column_if_not_exists("trades_orders", "realized_pnl", "DECIMAL(15,2) DEFAULT 0")
-            await add_column_if_not_exists("users_state", "used_margin", "DECIMAL(15,2) DEFAULT 0.00")
-            await add_column_if_not_exists("users_state", "free_margin", "DECIMAL(15,2) DEFAULT 100000.00")
-            await add_column_if_not_exists("users_state", "margin_level", "DECIMAL(10,2) DEFAULT 0.00")
-            await add_column_if_not_exists("users_state", "unrealized_pnl", "DECIMAL(15,2) DEFAULT 0.00")
-            await add_column_if_not_exists("users_state", "total_swap", "DECIMAL(15,2) DEFAULT 0.00")
-            await add_column_if_not_exists("users_state", "peak_equity", "DECIMAL(15,2) DEFAULT 100000.00")
-            await add_column_if_not_exists("users_state", "starting_balance", "DECIMAL(15,2) DEFAULT 100000.00")
-            await add_column_if_not_exists("users_state", "daily_start_balance", "DECIMAL(15,2) DEFAULT 100000.00")
-            await add_column_if_not_exists("users_state", "eval_start_date", "DATETIME NULL")
-            await add_column_if_not_exists("users_state", "eval_passed", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users", "experience_level", "VARCHAR(20) DEFAULT NULL")
-            await add_column_if_not_exists("users_state", "onboarding_step", "INT DEFAULT 0")
-            await add_column_if_not_exists("users_state", "onboarding_completed", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "step1_method", "VARCHAR(20) DEFAULT NULL")
-            await add_column_if_not_exists("users_state", "step2_method", "VARCHAR(20) DEFAULT NULL")
-            await add_column_if_not_exists("users_state", "assessment_step", "INT DEFAULT 1")
-            await add_column_if_not_exists("users_state", "step_start_balance", "DECIMAL(15,2) DEFAULT 100000.00")
-            await add_column_if_not_exists("users_state", "stock360s_1mo_purchased", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "stock360s_1yr_purchased", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "stock360s_purchase_time", "TIMESTAMP NULL")
-            await add_column_if_not_exists("users_state", "stock360s_confirmed", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "upstox_verified", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "assessment_completed", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "max_drawdown_breached", "BOOLEAN DEFAULT FALSE")
-            await add_column_if_not_exists("users_state", "daily_drawdown_used", "DECIMAL(15,2) DEFAULT 0.00")
-            await add_column_if_not_exists("users_state", "upstox_verify_request_time", "TIMESTAMP NULL")
-            await add_column_if_not_exists("users_state", "challenge_active_until", "DATETIME NULL")
-            await add_column_if_not_exists("users_state", "challenge_paid_at", "DATETIME NULL")
-            await add_column_if_not_exists("users_state", "challenge_payment_id", "VARCHAR(64) NULL")
-            await add_column_if_not_exists("users_state", "challenge_order_id", "VARCHAR(64) NULL")
-            await add_column_if_not_exists("users_state", "challenge_status", "VARCHAR(20) DEFAULT 'inactive'")
+            # ── challenge_payments: payment link columns ──
+            await add_column_if_not_exists(cur, "challenge_payments", "razorpay_payment_link_id", "VARCHAR(64) NULL UNIQUE")
+            await add_column_if_not_exists(cur, "challenge_payments", "razorpay_reference_id", "VARCHAR(64) NULL UNIQUE")
+            try:
+                await cur.execute("ALTER TABLE challenge_payments MODIFY COLUMN razorpay_order_id VARCHAR(64) NULL")
+            except Exception as e:
+                if "Duplicate column" not in str(e):
+                    logger.error(f"Migration error on challenge_payments.razorpay_order_id: {e}")
+
+            # ── trades_orders columns ──
+            await add_column_if_not_exists(cur, "trades_orders", "filled_size", "DECIMAL(18,8) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "trigger_price", "DECIMAL(15,5) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "take_profit_price", "DECIMAL(15,5) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "stop_loss_price", "DECIMAL(15,5) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "trailing_distance", "DECIMAL(15,5) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "trailing_trigger", "DECIMAL(15,5) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "status", "ENUM('PENDING','OPEN','PARTIAL','FILLED','CANCELLED','PARTIAL_LIQ','LIQUIDATED','STOP_OUT','MARGIN_CALL') DEFAULT 'PENDING'")
+            await add_column_if_not_exists(cur, "trades_orders", "initial_margin", "DECIMAL(15,2) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "maintenance_margin", "DECIMAL(15,2) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "maker_fee", "DECIMAL(15,2) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "taker_fee", "DECIMAL(15,2) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "funding_paid", "DECIMAL(15,2) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "swap_paid", "DECIMAL(15,2) DEFAULT 0")
+            await add_column_if_not_exists(cur, "trades_orders", "opened_at", "TIMESTAMP NULL")
+            await add_column_if_not_exists(cur, "trades_orders", "closed_at", "TIMESTAMP NULL")
+            await add_column_if_not_exists(cur, "trades_orders", "close_reason", "VARCHAR(20) NULL")
+            await add_column_if_not_exists(cur, "trades_orders", "realized_pnl", "DECIMAL(15,2) DEFAULT 0")
+
+            # ── users_state columns ──
+            await add_column_if_not_exists(cur, "users_state", "used_margin", "DECIMAL(15,2) DEFAULT 0.00")
+            await add_column_if_not_exists(cur, "users_state", "free_margin", "DECIMAL(15,2) DEFAULT 100000.00")
+            await add_column_if_not_exists(cur, "users_state", "margin_level", "DECIMAL(10,2) DEFAULT 0.00")
+            await add_column_if_not_exists(cur, "users_state", "unrealized_pnl", "DECIMAL(15,2) DEFAULT 0.00")
+            await add_column_if_not_exists(cur, "users_state", "total_swap", "DECIMAL(15,2) DEFAULT 0.00")
+            await add_column_if_not_exists(cur, "users_state", "peak_equity", "DECIMAL(15,2) DEFAULT 100000.00")
+            await add_column_if_not_exists(cur, "users_state", "starting_balance", "DECIMAL(15,2) DEFAULT 100000.00")
+            await add_column_if_not_exists(cur, "users_state", "daily_start_balance", "DECIMAL(15,2) DEFAULT 100000.00")
+            await add_column_if_not_exists(cur, "users_state", "eval_start_date", "DATETIME NULL")
+            await add_column_if_not_exists(cur, "users_state", "eval_passed", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "onboarding_step", "INT DEFAULT 0")
+            await add_column_if_not_exists(cur, "users_state", "onboarding_completed", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "step1_method", "VARCHAR(20) DEFAULT NULL")
+            await add_column_if_not_exists(cur, "users_state", "step2_method", "VARCHAR(20) DEFAULT NULL")
+            await add_column_if_not_exists(cur, "users_state", "assessment_step", "INT DEFAULT 1")
+            await add_column_if_not_exists(cur, "users_state", "step_start_balance", "DECIMAL(15,2) DEFAULT 100000.00")
+            await add_column_if_not_exists(cur, "users_state", "stock360s_1mo_purchased", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "stock360s_1yr_purchased", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "stock360s_purchase_time", "TIMESTAMP NULL")
+            await add_column_if_not_exists(cur, "users_state", "stock360s_confirmed", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "upstox_verified", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "assessment_completed", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "max_drawdown_breached", "BOOLEAN DEFAULT FALSE")
+            await add_column_if_not_exists(cur, "users_state", "daily_drawdown_used", "DECIMAL(15,2) DEFAULT 0.00")
+            await add_column_if_not_exists(cur, "users_state", "upstox_verify_request_time", "TIMESTAMP NULL")
+            await add_column_if_not_exists(cur, "users_state", "challenge_active_until", "DATETIME NULL")
+            await add_column_if_not_exists(cur, "users_state", "challenge_paid_at", "DATETIME NULL")
+            await add_column_if_not_exists(cur, "users_state", "challenge_payment_id", "VARCHAR(64) NULL")
+            await add_column_if_not_exists(cur, "users_state", "challenge_order_id", "VARCHAR(64) NULL")
+            await add_column_if_not_exists(cur, "users_state", "challenge_status", "VARCHAR(20) DEFAULT 'inactive'")
+
+            # ── users columns ──
+            await add_column_if_not_exists(cur, "users", "experience_level", "VARCHAR(20) DEFAULT NULL")
     logger.info("Database initialized and tables verified.")
 
 def hash_password(password: str, salt: str = None) -> tuple:
